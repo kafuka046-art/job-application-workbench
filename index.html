@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="把真实经历整理成可复用素材库，再根据JD生成选材分析包和投递检查清单。">
+  <title>简历投递工作台</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101828'/%3E%3Cpath d='M18 16h28v32H18z' fill='none' stroke='%23d8ff63' stroke-width='4'/%3E%3Cpath d='M25 26h14M25 34h14M25 42h9' stroke='%23d8ff63' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">履</span>
+      <div>
+        <strong>简历投递工作台</strong>
+        <span>事实库 → JD匹配 → 人工确认 → 投递记录</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="button ghost" id="importButton">导入数据</button>
+      <button class="button ghost" id="exportButton">导出备份</button>
+      <input id="importFile" type="file" accept="application/json" hidden>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <nav class="step-nav" aria-label="工作台导航">
+      <button class="nav-item active" data-view="library"><span>01</span>经历库</button>
+      <button class="nav-item" data-view="match"><span>02</span>JD匹配</button>
+      <button class="nav-item" data-view="package"><span>03</span>分析包</button>
+      <button class="nav-item" data-view="tracker"><span>04</span>投递记录</button>
+      <div class="privacy-note">
+        <strong>本地保存</strong>
+        <p>数据只保存在当前浏览器。换设备前请导出备份。</p>
+      </div>
+    </nav>
+
+    <main>
+      <section class="view active" id="view-library">
+        <div class="view-heading">
+          <div>
+            <p class="eyebrow">STEP 01 · 建立唯一事实源</p>
+            <h1>先把经历说清楚，再谈怎么包装</h1>
+            <p>每段经历都保留动作、结果、证据和真实性边界。后续所有岗位从这里选材。</p>
+          </div>
+          <button class="button primary" id="newExperienceButton">＋ 新增经历</button>
+        </div>
+
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-title">
+              <h2>候选人信息</h2>
+              <span class="status-pill" id="profileStatus">待完善</span>
+            </div>
+            <div class="form-grid">
+              <label>姓名<input id="candidateName" placeholder="例如：张同学"></label>
+              <label>求职方向<input id="targetDirection" placeholder="例如：产品 / 内容运营"></label>
+              <label class="span-2">教育背景<input id="education" placeholder="学校、专业、学历、毕业时间"></label>
+              <label class="span-2">个人硬规则<textarea id="rules" rows="4" placeholder="例如：不得编造数字；先给选材方案，确认后再生成；公开资料不得包含内部信息"></textarea></label>
+            </div>
+          </article>
+
+          <article class="panel score-panel">
+            <p class="eyebrow">资料库健康度</p>
+            <div class="score-line"><strong id="healthScore">0</strong><span>/ 100</span></div>
+            <div class="progress"><i id="healthBar"></i></div>
+            <ul class="health-list" id="healthList"></ul>
+          </article>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <h2>经历素材</h2>
+            <p>不是越多越好，关键是每段都有可核验的动作和结果。</p>
+          </div>
+          <div class="filter-row" role="group" aria-label="经历筛选">
+            <button class="chip active" data-filter="all">全部</button>
+            <button class="chip" data-filter="实习">实习</button>
+            <button class="chip" data-filter="项目">项目</button>
+            <button class="chip" data-filter="校园/实践">校园/实践</button>
+          </div>
+        </div>
+        <div class="experience-list" id="experienceList"></div>
+      </section>
+
+      <section class="view" id="view-match">
+        <div class="view-heading compact">
+          <div>
+            <p class="eyebrow">STEP 02 · 拆JD并选材</p>
+            <h1>先解释为什么选，再决定写什么</h1>
+            <p>本工具只做关键词粗匹配，最终判断仍需由人完成。</p>
+          </div>
+        </div>
+
+        <div class="grid two match-grid">
+          <article class="panel">
+            <div class="form-grid">
+              <label>公司<input id="jobCompany" placeholder="公司名称"></label>
+              <label>岗位<input id="jobTitle" placeholder="岗位名称"></label>
+              <label>城市<input id="jobCity" placeholder="城市，可留空"></label>
+              <label>岗位编号<input id="jobCode" placeholder="可留空"></label>
+              <label class="span-2">完整JD<textarea id="jobDescription" rows="14" placeholder="粘贴岗位职责和任职要求"></textarea></label>
+            </div>
+            <button class="button primary full" id="analyzeButton">生成选材建议</button>
+          </article>
+
+          <article class="panel">
+            <div class="panel-title">
+              <div>
+                <p class="eyebrow">关键词雷达</p>
+                <h2>岗位关注什么</h2>
+              </div>
+            </div>
+            <div id="keywordCloud" class="keyword-cloud empty-state">粘贴JD后生成</div>
+            <div class="divider"></div>
+            <p class="eyebrow">风险提醒</p>
+            <ul class="risk-list" id="riskList">
+              <li>当前尚未分析岗位。</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <h2>选材建议</h2>
+            <p>勾选要带入分析包的经历；分数只是文本重合度，不等于录用概率。</p>
+          </div>
+        </div>
+        <div class="match-list" id="matchList"></div>
+      </section>
+
+      <section class="view" id="view-package">
+        <div class="view-heading compact">
+          <div>
+            <p class="eyebrow">STEP 03 · 交给AI前先锁定事实</p>
+            <h1>生成可复制的简历分析包</h1>
+            <p>包含JD、候选人信息、选中经历和硬规则，适合复制到任意AI工具。</p>
+          </div>
+          <button class="button primary" id="copyPromptButton">复制分析包</button>
+        </div>
+
+        <div class="grid package-grid">
+          <article class="panel checklist-panel">
+            <h2>生成前确认</h2>
+            <label class="check"><input type="checkbox" data-check="facts">所有数字都能解释来源</label>
+            <label class="check"><input type="checkbox" data-check="scope">参与、负责、主导的边界准确</label>
+            <label class="check"><input type="checkbox" data-check="selection">已确认收录和不收录的经历</label>
+            <label class="check"><input type="checkbox" data-check="links">作品和证据链接可正常打开</label>
+            <label class="check"><input type="checkbox" data-check="privacy">已移除敏感内部信息</label>
+            <div class="readiness">
+              <span>准备度</span>
+              <strong id="readinessText">0 / 5</strong>
+            </div>
+          </article>
+
+          <article class="panel prompt-panel">
+            <div class="panel-title">
+              <h2>分析包预览</h2>
+              <span class="status-pill" id="promptStatus">尚未生成</span>
+            </div>
+            <textarea id="promptOutput" rows="24" readonly placeholder="完成经历库和JD匹配后，这里会生成分析包。"></textarea>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-tracker">
+        <div class="view-heading compact">
+          <div>
+            <p class="eyebrow">STEP 04 · 记录使用了什么版本</p>
+            <h1>投后别让版本失联</h1>
+            <p>记录公司、岗位、状态和材料备注，避免后续面试找不到当时版本。</p>
+          </div>
+          <button class="button primary" id="addApplicationButton">＋ 登记当前岗位</button>
+        </div>
+
+        <article class="panel table-panel">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>公司 / 岗位</th><th>日期</th><th>状态</th><th>材料备注</th><th></th></tr></thead>
+              <tbody id="applicationTable"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="applicationEmpty">还没有投递记录。</div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="experienceDialog">
+    <form method="dialog" id="experienceForm">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">素材录入</p><h2 id="dialogTitle">新增经历</h2></div>
+        <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+      </div>
+      <input id="experienceId" type="hidden">
+      <div class="form-grid">
+        <label>类型<select id="experienceType"><option>实习</option><option>项目</option><option>校园/实践</option></select></label>
+        <label>时间<input id="experienceTime" placeholder="2026.07-2026.09"></label>
+        <label>经历名称<input id="experienceTitle" required placeholder="公司或项目名称"></label>
+        <label>角色<input id="experienceRole" placeholder="岗位或个人角色"></label>
+        <label class="span-2">具体动作<textarea id="experienceActions" rows="4" required placeholder="你具体做了什么？一行一个动作"></textarea></label>
+        <label class="span-2">结果数据<textarea id="experienceResults" rows="3" placeholder="数字、成果、产出；没有就如实留空"></textarea></label>
+        <label>能力标签<input id="experienceTags" placeholder="内容运营, 数据分析, AI"></label>
+        <label>证据/链接<input id="experienceEvidence" placeholder="文件名、作品链接或截图说明"></label>
+        <label class="span-2">真实性边界<textarea id="experienceBoundary" rows="2" placeholder="例如：参与执行，未主导整体策略"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="button ghost" value="cancel">取消</button>
+        <button class="button primary" id="saveExperienceButton" value="default">保存经历</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

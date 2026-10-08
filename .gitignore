@@ -1,0 +1,7 @@
+*.log
+.env
+.env.*
+!*.example
+node_modules/
+private/
+*-backup.json
